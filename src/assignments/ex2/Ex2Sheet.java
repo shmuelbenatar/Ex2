@@ -255,7 +255,7 @@ public class Ex2Sheet implements Sheet {
         } else if (cell.getType() == Ex2Utils.ERR_CYCLE_FORM) {
             cell.setComputedValue(Ex2Utils.ERR_CYCLE);
         } else if (cell.getType() == Ex2Utils.FORM) {
-            String formula = data.substring(1); // Remove '='
+            String formula = data; // Remove '='?
             try {
                 formula = resolveReferences(formula);
                 cell.setComputedValue(String.valueOf(((SCell) cell).computeForm(formula)));
@@ -307,7 +307,7 @@ public class Ex2Sheet implements Sheet {
                     if (isNegativeNumber(value)) {
                         double numericValue = Double.parseDouble(value);
                         if (numericValue < 0 && formula.contains("-" + entry)) {
-                            formula = formula.replace("-" + entry, "0-" + value);
+                            formula = formula.replace("-" + entry, "-(" + value + ")");
                         } else {
                             formula = formula.replace(entry.toString(), value);
                         }

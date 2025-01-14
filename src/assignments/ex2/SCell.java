@@ -3,6 +3,8 @@ package assignments.ex2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static assignments.ex2.Ex2Sheet.ddCompute;
 
@@ -120,21 +122,7 @@ public class SCell implements Cell {
         dependents.clear();
     }
 
-    /**
-     * Computes the value of a formula string.
-     * This function handles only arithmetic operations and parentheses.
-     * @param form The formula string (e.g., "3+4*(5-2)").
-     * @return The result as a double.
-     */
-    public Double computeForm(String form) {
-//			form = Ex2Sheet.resolveReferences(form);
-        form = form.replaceAll("\\s", ""); // Remove whitespace
-        if (form.contains(Ex2Utils.ERR_FORM) || form.contains(Ex2Utils.ERR_CYCLE)) {
-            throw new IllegalArgumentException("Invalid formula: " + form);
-        }
-        return evaluate(form);
 
-    }
     /**
      * Checks if the input string is a valid number.
      * @param s The input string.
@@ -169,68 +157,108 @@ public class SCell implements Cell {
         return false;
     }
 
-    /**
-     * Evaluates a mathematical expression recursively.
-     * @param expression The expression to evaluate.
-     * @return The computed result as a double.
-     */
-    private double evaluate(String expression) {
-        if (expression.contains("(")) {
-            int start = expression.lastIndexOf('(');
-            int end = expression.indexOf(')', start);
-            if (end == -1) {
-                throw new IllegalArgumentException("Mismatched parentheses in expression: " + expression);
-            }
-            String subExpression = expression.substring(start + 1, end);
-            double result = evaluate(subExpression);
-            expression = expression.substring(0, start) + result + expression.substring(end + 1);
-            return evaluate(expression);
-        } else {
-            return calculateSimpleExpression(expression);
+
+    public Double computeForm(String form) {
+        if (form == null || form.isEmpty()) {
+            throw new IllegalArgumentException("Invalid formula: empty string");
+        }else if (form.contains(Ex2Utils.ERR_FORM) || form.contains(Ex2Utils.ERR_CYCLE)) {
+            throw new IllegalArgumentException("Invalid formula: " + form);
         }
+
+        if (form.charAt(0) != '=') {
+            throw new IllegalArgumentException("Invalid formula: missing '=' at the start");
+        }
+
+        form = form.substring(1).replaceAll("\\s", "");
+
+        if (containsInvalidOperatorPairs(form)) {
+            throw new IllegalArgumentException("Invalid formula: contains invalid operator pairs");
+        }
+
+        return evaluateExpression(form);
     }
 
-    /**
-     * Calculates a simple expression without parentheses.
-     *
-     * @param expression The expression to calculate.
-     * @return The computed result as a double.
-     */
-    private double calculateSimpleExpression(String expression) {
-        String[] addSub = expression.split("(?=[+-])|(?<=[+-])");
-        double result = multiplyDivide(addSub[0]);
-        for (int i = 1; i < addSub.length; i += 2) {
-            String operator = addSub[i];
-            double value = multiplyDivide(addSub[i + 1]);
-            if (operator.equals("+")) {
-                result += value;
-            } else if (operator.equals("-")) {
-                result -= value;
+    private boolean containsInvalidOperatorPairs(String expression) {
+        String[] invalidPairs = {
+                "\\+\\+", "--", "\\+-", "-\\+", "\\*\\*", "//", "\\*/", "/\\*",
+                "\\+\\*", "\\+/", "-\\*", "-/", "\\*\\+", "/\\+", "/\\-", "\\*\\-"
+        };
+        for (String pair : invalidPairs) {
+            Pattern pattern = Pattern.compile(pair);
+            Matcher matcher = pattern.matcher(expression);
+            if (matcher.find()) {
+                return true;
             }
         }
-        return result;
+        return false;
     }
 
-    /**
-     * Handles multiplication and division in an expression.
-     *
-     * @param expression The expression to calculate.
-     * @return The computed result as a double.
-     */
-    private double multiplyDivide(String expression) {
-        String[] mulDiv = expression.split("(?=[*/])|(?<=[*/])");
-        double result = Double.parseDouble(mulDiv[0]);
-        for (int i = 1; i < mulDiv.length; i += 2) {
-            String operator = mulDiv[i];
-            double value = Double.parseDouble(mulDiv[i + 1]);
-            if (operator.equals("*")) {
-                result *= value;
-            } else if (operator.equals("/")) {
-                result /= value;
+    private double evaluateExpression(String expression) {
+        return new Object() {
+            int pos = -1, ch;
+
+            void nextChar() {
+                ch = (++pos < expression.length()) ? expression.charAt(pos) : -1;
             }
-        }
-        return result;
+
+            boolean eat(int charToEat) {
+                while (ch == ' ') nextChar();
+                if (ch == charToEat) {
+                    nextChar();
+                    return true;
+                }
+                return false;
+            }
+
+            double parse() {
+                nextChar();
+                double x = parseExpression();
+                if (pos < expression.length()) throw new RuntimeException("Unexpected: " + (char) ch);
+                return x;
+            }
+
+            double parseExpression() {
+                double x = parseTerm();
+                for (; ; ) {
+                    if (eat('+')) x += parseTerm();
+                    else if (eat('-')) x -= parseTerm();
+                    else return x;
+                }
+            }
+
+            double parseTerm() {
+                double x = parseFactor();
+                for (; ; ) {
+                    if (eat('*')) x *= parseFactor();
+                    else if (eat('/')) x /= parseFactor();
+                    else return x;
+                }
+            }
+
+            double parseFactor() {
+                if (eat('+')) return parseFactor();
+                if (eat('-')) return -parseFactor();
+
+                double x;
+                int startPos = this.pos;
+                if (eat('(')) {
+                    x = parseExpression();
+                    eat(')');
+                } else if ((ch >= '0' && ch <= '9') || ch == '.') {
+                    while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
+                    x = Double.parseDouble(expression.substring(startPos, this.pos));
+                } else {
+                    throw new RuntimeException("Unexpected: " + (char) ch);
+                }
+
+                return x;
+            }
+        }.parse();
     }
+
+
+
+
 
     /**
      * Checks if the input string is plain text (not a number, formula, or error).
