@@ -157,7 +157,18 @@ public class SCell implements Cell {
         return false;
     }
 
-
+    /**
+     * Evaluates a string representation of a formula.
+     *
+     * This method parses and evaluates a mathematical expression represented as a string.
+     * It validates the formula for syntactic correctness, checks for the presence of errors or
+     * circular references in the formula, and performs calculation based on the defined operations.
+     *
+     * @param form The formula string to evaluate, starting with an '='.
+     * @return The result of the evaluated expression as a Double.
+     * @throws IllegalArgumentException If the formula is invalid due to syntax errors,
+     *                                  the presence of error strings, or missing the '=' at the start.
+     */
     public Double computeForm(String form) {
         if (form == null || form.isEmpty()) {
             throw new IllegalArgumentException("Invalid formula: empty string");
@@ -177,7 +188,15 @@ public class SCell implements Cell {
 
         return evaluateExpression(form);
     }
-
+    /**
+     * Checks for invalid operator pairs within an expression string.
+     *
+     * This method ensures that the expression does not contain sequences of operators that
+     * are not valid in mathematical expressions, such as consecutive pluses or asterisks.
+     *
+     * @param expression The expression string to check.
+     * @return true if any invalid operator pairs are found, false otherwise.
+     */
     private boolean containsInvalidOperatorPairs(String expression) {
         String[] invalidPairs = {
                 "\\+\\+", "--", "\\+-", "-\\+", "\\*\\*", "//", "\\*/", "/\\*",
@@ -192,7 +211,15 @@ public class SCell implements Cell {
         }
         return false;
     }
-
+    /**
+     * Evaluates a mathematical expression from a string.
+     *
+     * This internal method uses a recursive descent parser to interpret and calculate the result of a
+     * mathematical expression. It handles basic arithmetic operations and parentheses for grouping.
+     *
+     * @param expression The mathematical expression to evaluate.
+     * @return The calculated result of the expression.
+     */
     private double evaluateExpression(String expression) {
         return new Object() {
             int pos = -1, ch;

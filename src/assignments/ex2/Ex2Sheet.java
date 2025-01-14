@@ -50,12 +50,15 @@ public class Ex2Sheet implements Sheet {
             cell.setType(Ex2Utils.ERR_CYCLE_FORM );
             return Ex2Utils.ERR_CYCLE;
         }
+        if (cell.getType() == Ex2Utils.ERR_FORM_FORMAT ) {
+            return Ex2Utils.ERR_FORM;
+        }
 
         // If the cell has already been computed, return the computed value
-        if (cell.getComputedValue() != null) {
-            return cell.getComputedValue();
+        if (cell.getComputedValue() == null) {
+            ans = eval(x, y);
         }
-        ans = eval(x, y);
+        ans = cell.getComputedValue() != null ? cell.getComputedValue() : Ex2Utils.EMPTY_CELL;
         /////////////////////
         return ans;
     }
@@ -261,6 +264,7 @@ public class Ex2Sheet implements Sheet {
                 cell.setComputedValue(String.valueOf(((SCell) cell).computeForm(formula)));
             } catch (IllegalArgumentException e) {
                 cell.setComputedValue(Ex2Utils.ERR_FORM); // Return error if formula is invalid
+                cell.setType(Ex2Utils.ERR_FORM_FORMAT);
             }
         }
         return cell.getComputedValue();
@@ -304,16 +308,7 @@ public class Ex2Sheet implements Sheet {
                     return Ex2Utils.ERR_FORM;
                 }
                 if (SCell.isNumber(value) || SCell.isFormula(value)) {
-                    if (isNegativeNumber(value)) {
-                        double numericValue = Double.parseDouble(value);
-                        if (numericValue < 0 && formula.contains("-" + entry)) {
-                            formula = formula.replace("-" + entry, "-(" + value + ")");
-                        } else {
-                            formula = formula.replace(entry.toString(), value);
-                        }
-                    } else {
-                        formula = formula.replace(entry.toString(), value);
-                    }
+                    formula = formula.replace(entry.toString(), "(" + value + ")");
                 }
             }
         }
@@ -343,13 +338,7 @@ public class Ex2Sheet implements Sheet {
 
         return cellEntries; // Return the list of parsed cell entries
     }
-    private boolean isNegativeNumber(String value) {
-        if (value.startsWith("-") && value.length() > 1) {
-            String numericPart = value.substring(1);
-            return numericPart.chars().allMatch(Character::isDigit);
-        }
-        return false;
-    }
+
 
     /**
      * Finds the maximum depth in the 2D depth array.
