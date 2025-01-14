@@ -27,7 +27,7 @@ This Java project implements a basic spreadsheet simulator as part of the "Intro
 ## GUI Example
 Below is an example of the graphical user interface displaying the spreadsheet:
 
-![Spreadsheet Example](![img.png](img.png))
+![image](https://github.com/user-attachments/assets/3587b0c5-2fb3-4b14-88b2-a53914b44112)
 
 
 
